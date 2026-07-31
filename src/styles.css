@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #e2e8f0; background: #0f172a; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, select, input { font: inherit; }
+button { cursor: pointer; }
+.app-shell { min-height: 100vh; background: #0f172a; }
+.panel { background: #172033; border: 1px solid #29354b; border-radius: 14px; }
+.muted { color: #94a3b8; }
+.toolbar-button { display: inline-flex; align-items: center; gap: .4rem; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; border-radius: .5rem; padding: .55rem .75rem; }
+.toolbar-button:hover { background: #334155; }
+.primary { background: #2563eb; border-color: #2563eb; }
+.primary:hover { background: #1d4ed8; }
+.danger { color: #fecaca; border-color: #7f1d1d; }
+.reader-text { white-space: pre-wrap; line-height: 1.9; font-family: Georgia, serif; font-size: 1.15rem; color: #e5e7eb; }
+.selection { background: rgba(250, 204, 21, .22); border-radius: 3px; }
