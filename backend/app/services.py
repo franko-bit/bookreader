@@ -30,19 +30,37 @@ def translate(text: str, source_language: str, target_language: str) -> str:
         tokenizer.set_src_lang_special_tokens(source_code)
     if callable(getattr(tokenizer, 'set_tgt_lang_special_tokens', None)):
         tokenizer.set_tgt_lang_special_tokens(target_code)
-    inputs = tokenizer(text, return_tensors='pt', truncation=True, max_length=512)
     forced_bos_token_id = _nllb_language_id(tokenizer, target_code)
     if forced_bos_token_id is None:
         raise TranslationServiceUnavailable(
             f'Unable to resolve the target language token id for {target_code}.'
         )
+
+    segments = _split_sentences(text)
+    if len(segments) <= 1 or len(text) < 120:
+        return _generate_translation(model, tokenizer, torch, text, forced_bos_token_id)
+
+    return ' '.join(_generate_translation(model, tokenizer, torch, segment, forced_bos_token_id) for segment in segments)
+
+
+def _generate_translation(model, tokenizer, torch, text: str, forced_bos_token_id: int) -> str:
+    inputs = tokenizer(text, return_tensors='pt', truncation=True, max_length=512)
+    max_new_tokens = max(128, min(512, inputs.input_ids.shape[1] * 4))
     with torch.inference_mode():
         generated = model.generate(
             **inputs,
             forced_bos_token_id=forced_bos_token_id,
-            max_new_tokens=512,
+            max_new_tokens=max_new_tokens,
+            num_beams=4,
+            no_repeat_ngram_size=3,
+            early_stopping=True,
         )
     return tokenizer.batch_decode(generated, skip_special_tokens=True)[0]
+
+
+def _split_sentences(text: str) -> list[str]:
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    return [sentence.strip() for sentence in sentences if sentence.strip()]
 
 
 def _nllb_language_id(tokenizer, language_code: str) -> int | None:
