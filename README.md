@@ -33,3 +33,15 @@ The frontend uses useful local fallbacks when the backend is not running. Set `V
 - FastAPI endpoints with replaceable AI service stubs.
 
 AI model integration is isolated in `backend/app/services.py`. Translation uses Hugging Face's `facebook/nllb-200-distilled-600M` model for English, French, and Kinyarwanda. On the first translation request, the backend downloads and initializes the model; later requests reuse its local Hugging Face cache. This requires network access and substantial RAM (a GPU is recommended for responsive inference).
+
+### Backend translation configuration
+
+Set these environment variables in `backend` to control local/remote translation behavior:
+
+- `NLLB_FAST_MODE=1` (default) enables faster local generation with smaller beams.
+- `NLLB_WARMUP=1` (default) runs a quick model warm-up on startup.
+- `HF_INFERENCE_API=1` forces translation through the Hugging Face Inference API instead of the local model.
+- `HF_API_TOKEN=<your_token>` is required when using the remote inference API.
+- `HF_INFERENCE_URL=<url>` optionally overrides the Hugging Face inference endpoint.
+
+When local model loading fails, the backend falls back to the remote Hugging Face Inference API if `HF_API_TOKEN` is configured.
