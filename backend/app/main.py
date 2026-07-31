@@ -13,6 +13,15 @@ app.add_middleware(
 )
 
 
+@app.get('/')
+def root():
+    return {
+        'message': 'Voice Reader API is running',
+        'docs': '/docs',
+        'health': '/health',
+    }
+
+
 @app.get('/health')
 def health():
     return {'status': 'ok'}

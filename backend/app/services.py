@@ -23,15 +23,33 @@ def translate(text: str, source_language: str, target_language: str) -> str:
     if source_language == target_language:
         return text
     tokenizer, model, torch = _nllb_components()
-    tokenizer.src_lang = NLLB_LANGUAGE_CODES[source_language]
+    source_code = NLLB_LANGUAGE_CODES[source_language]
+    target_code = NLLB_LANGUAGE_CODES[target_language]
+    tokenizer.src_lang = source_code
+    if callable(getattr(tokenizer, 'set_src_lang_special_tokens', None)):
+        tokenizer.set_src_lang_special_tokens(source_code)
+    if callable(getattr(tokenizer, 'set_tgt_lang_special_tokens', None)):
+        tokenizer.set_tgt_lang_special_tokens(target_code)
     inputs = tokenizer(text, return_tensors='pt', truncation=True, max_length=512)
+    forced_bos_token_id = _nllb_language_id(tokenizer, target_code)
+    if forced_bos_token_id is None:
+        raise TranslationServiceUnavailable(
+            f'Unable to resolve the target language token id for {target_code}.'
+        )
     with torch.inference_mode():
         generated = model.generate(
             **inputs,
-            forced_bos_token_id=tokenizer.lang_code_to_id[NLLB_LANGUAGE_CODES[target_language]],
+            forced_bos_token_id=forced_bos_token_id,
             max_new_tokens=512,
         )
     return tokenizer.batch_decode(generated, skip_special_tokens=True)[0]
+
+
+def _nllb_language_id(tokenizer, language_code: str) -> int | None:
+    try:
+        return tokenizer.lang_code_to_id[language_code]
+    except Exception:
+        return tokenizer.convert_tokens_to_ids(language_code)
 
 
 @lru_cache(maxsize=1)
