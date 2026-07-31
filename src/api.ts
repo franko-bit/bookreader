@@ -9,7 +9,7 @@ async function post<T>(path: string, payload: unknown): Promise<T> {
 }
 
 export const ai = {
-  translate: (text: string, target_language: string) => post<{ translation: string }>('/translate', { text, target_language }),
+  translate: (text: string, source_language: string, target_language: string) => post<{ translation: string }>('/translate', { text, source_language, target_language }),
   summarize: (text: string, style: 'short' | 'bullets') => post<{ summary: string }>('/summarize', { text, style }),
   analyze: (text: string, transcript: string, duration_seconds: number) => post<Analysis>('/analysis/session', { text, transcript, duration_seconds }),
 }

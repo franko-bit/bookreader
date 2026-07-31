@@ -7,6 +7,7 @@ class TextRequest(BaseModel):
 
 
 class TranslateRequest(TextRequest):
+    source_language: Literal['English', 'French', 'Kinyarwanda'] = 'English'
     target_language: Literal['English', 'French', 'Kinyarwanda']
 
 

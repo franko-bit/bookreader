@@ -32,4 +32,4 @@ The frontend uses useful local fallbacks when the backend is not running. Set `V
 - Browser recording, replay/deletion, voice notes, WPM and transcript-comparison feedback.
 - FastAPI endpoints with replaceable AI service stubs.
 
-AI model integration is intentionally isolated in `backend/app/services.py`; replace the lightweight MVP implementations with hosted or local models as infrastructure becomes available.
+AI model integration is isolated in `backend/app/services.py`. Translation uses Hugging Face's `facebook/nllb-200-distilled-600M` model for English, French, and Kinyarwanda. On the first translation request, the backend downloads and initializes the model; later requests reuse its local Hugging Face cache. This requires network access and substantial RAM (a GPU is recommended for responsive inference).

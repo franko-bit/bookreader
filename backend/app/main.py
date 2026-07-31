@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from .models import AnalysisRequest, SummaryRequest, TranslateRequest
 from . import services
@@ -6,7 +6,7 @@ from . import services
 app = FastAPI(title='Voice Reader API', version='0.1.0')
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=['http://localhost:5173'],
+    allow_origin_regex=r'https?://(localhost|127\.0\.0\.1|0\.0\.0\.0):\d+',
     allow_credentials=True,
     allow_methods=['*'],
     allow_headers=['*'],
@@ -20,7 +20,10 @@ def health():
 
 @app.post('/translate')
 def translation(request: TranslateRequest):
-    return {'translation': services.translate(request.text, request.target_language)}
+    try:
+        return {'translation': services.translate(request.text, request.source_language, request.target_language)}
+    except services.TranslationServiceUnavailable as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
 
 
 @app.post('/summarize')

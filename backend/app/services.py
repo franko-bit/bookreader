@@ -1,10 +1,56 @@
-"""MVP service implementations. Replace these functions with model providers in production."""
+"""Model-backed application services."""
+from functools import lru_cache
 import re
 
+NLLB_MODEL_ID = 'facebook/nllb-200-distilled-600M'
+NLLB_LANGUAGE_CODES = {
+    'English': 'eng_Latn',
+    'French': 'fra_Latn',
+    'Kinyarwanda': 'kin_Latn',
+}
 
-def translate(text: str, target_language: str) -> str:
-    # A deliberately transparent fallback until NLLB or a translation API is configured.
-    return f'[{target_language} translation service not configured] {text}'
+
+class TranslationServiceUnavailable(RuntimeError):
+    """Raised when the local Hugging Face translation model cannot be loaded."""
+
+
+def translate(text: str, source_language: str, target_language: str) -> str:
+    """Translate a supported language pair with NLLB-200.
+
+    Loading occurs on the first translation, so API startup stays fast. Hugging
+    Face caches the model locally once it has been downloaded.
+    """
+    if source_language == target_language:
+        return text
+    tokenizer, model, torch = _nllb_components()
+    tokenizer.src_lang = NLLB_LANGUAGE_CODES[source_language]
+    inputs = tokenizer(text, return_tensors='pt', truncation=True, max_length=512)
+    with torch.inference_mode():
+        generated = model.generate(
+            **inputs,
+            forced_bos_token_id=tokenizer.lang_code_to_id[NLLB_LANGUAGE_CODES[target_language]],
+            max_new_tokens=512,
+        )
+    return tokenizer.batch_decode(generated, skip_special_tokens=True)[0]
+
+
+@lru_cache(maxsize=1)
+def _nllb_components():
+    try:
+        import torch
+        from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+        tokenizer = AutoTokenizer.from_pretrained(NLLB_MODEL_ID)
+        try:
+            model = AutoModelForSeq2SeqLM.from_pretrained(NLLB_MODEL_ID, device_map='auto')
+        except Exception:
+            model = AutoModelForSeq2SeqLM.from_pretrained(NLLB_MODEL_ID)
+        model.eval()
+        return tokenizer, model, torch
+    except Exception as error:
+        raise TranslationServiceUnavailable(
+            f'Unable to load {NLLB_MODEL_ID}. Install backend requirements and ensure '
+            f'the server can download Hugging Face model files. Details: {error}'
+        ) from error
 
 
 def summarize(text: str, style: str) -> str:
